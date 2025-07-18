@@ -67,6 +67,7 @@
     .thumbnail.selected {
       border: 2px solid #00f;
     }
+
     .bottom-buttons {
       position: absolute;
       bottom: 10px;
@@ -76,6 +77,7 @@
       align-items: center;
       z-index: 10;
     }
+
     .bottom-buttons button,
     .bottom-buttons a {
       background: transparent;
@@ -83,6 +85,7 @@
       padding: 0;
       cursor: pointer;
     }
+
     .bottom-buttons img {
       width: 42px;
       height: 42px;
@@ -93,9 +96,14 @@
 <body>
 
 <video id="cam" autoplay muted playsinline></video>
-<video id="ad" playsinline loop preload="auto"></video>
+
+<!-- AR Video Ad -->
+<video id="ad" playsinline loop controls></video>
+
+<!-- Play/Pause -->
 <button id="ppBtn" title="Play/Pause">▶️</button>
 
+<!-- Video Thumbnails -->
 <div class="thumbnail-bar">
   <div class="thumbnail" data-src="advertisement/promo1.mp4">PLAN1</div>
   <div class="thumbnail" data-src="advertisement/promo2.mp4">PLAN2</div>
@@ -104,18 +112,20 @@
   <div class="thumbnail" data-src="advertisement/promo5.mp4">PLAN5</div>
 </div>
 
+<!-- Bottom Icons -->
 <div class="bottom-buttons">
   <button id="shareBtn" title="Share">
     <img src="share logo1.png" alt="Share">
   </button>
-  <a href="https://maps.app.goo.gl/2g4prviFVzsdK14e9" target="_blank" id="locationBtn" title="Location">
+  <a href="https://maps.app.goo.gl/2g4prviFVzsdK14e9" target="_blank" title="Location">
     <img src="loclogo1.png" alt="Location">
   </a>
-  <a href="https://wa.me/916379907619?text=Hi%20Welcome%20to%20Fine%20Gold%20&%20Diamonds%20,%20Can%20i%20get%20more%20datails%20about%20the%20plans" target="_blank" id="whatsappBtn" title="WhatsApp">
+  <a href="https://wa.me/916379907619?text=Hi%20Welcome%20to%20Fine%20Gold%20&%20Diamonds%20,%20Can%20i%20get%20more%20datails%20about%20the%20plans" target="_blank" title="WhatsApp">
     <img src="logo whatsapp1.png" alt="WhatsApp">
   </a>
 </div>
 
+<!-- Script Logic -->
 <script>
   const btn = document.getElementById('ppBtn');
   const ad = document.getElementById('ad');
@@ -126,37 +136,23 @@
   let currentVideoSrc = '';
   let isPlaying = false;
 
-  // Set up camera
+  // Camera Access
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => cam.srcObject = stream)
-    .catch(err => alert('Camera error: ' + err));
+    .then(stream => {
+      cam.srcObject = stream;
+    })
+    .catch(err => {
+      alert('Unable to access the camera. Please allow camera permissions in your browser settings.');
+      console.error('Camera error:', err);
+    });
 
-  // Preload videos into object URLs
-  const videoCache = {};
-
-  function preloadVideo(url) {
-    fetch(url)
-      .then(response => response.blob())
-      .then(blob => {
-        const objectURL = URL.createObjectURL(blob);
-        videoCache[url] = objectURL;
-      })
-      .catch(err => console.error('Preload failed:', err));
-  }
-
-  // Preload all thumbnails' videos
-  thumbnails.forEach(thumbnail => {
-    const src = thumbnail.dataset.src;
-    preloadVideo(src);
-  });
-
-  // On thumbnail click, play the video
+  // Thumbnail Click
   thumbnails.forEach(thumbnail => {
     thumbnail.addEventListener('click', () => {
       const src = thumbnail.dataset.src;
       if (src !== currentVideoSrc) {
         currentVideoSrc = src;
-        ad.src = videoCache[src] || src;
+        ad.src = src;
         ad.load();
         ad.volume = 1;
         videoLoaded = true;
@@ -171,7 +167,7 @@
     });
   });
 
-  // Play/Pause button
+  // Play/Pause Toggle
   btn.addEventListener('click', () => {
     if (!videoLoaded) return;
 
@@ -179,7 +175,9 @@
       ad.play().then(() => {
         btn.innerText = '⏸️';
         isPlaying = true;
-      }).catch(e => alert('Playback failed: ' + e.message));
+      }).catch(e => {
+        alert('Playback failed: ' + e.message);
+      });
     } else {
       ad.pause();
       btn.innerText = '▶️';
@@ -187,7 +185,7 @@
     }
   });
 
-  // Share functionality
+  // Web Share API
   document.getElementById('shareBtn').addEventListener('click', async () => {
     if (navigator.share) {
       try {

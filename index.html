@@ -33,9 +33,9 @@
       padding: 8px 12px;
       font-size: 20px;
       border: none;
-      border-radius: 50%;
-      background: #fff;
-      color: #000;
+      border-radius: 10%;
+      background: transparent;
+      color: transparent;
       cursor: pointer;
       z-index: 10;
       box-shadow: 0 0 12px rgba(0,0,0,.6);
@@ -43,7 +43,7 @@
     }
     .thumbnail-bar {
       position: absolute;
-      bottom: 90px; /* moved down from 120px */
+      bottom: 90px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -67,7 +67,6 @@
     .thumbnail.selected {
       border: 2px solid #00f;
     }
-
     .bottom-buttons {
       position: absolute;
       bottom: 10px;
@@ -77,7 +76,6 @@
       align-items: center;
       z-index: 10;
     }
-
     .bottom-buttons button,
     .bottom-buttons a {
       background: transparent;
@@ -85,7 +83,6 @@
       padding: 0;
       cursor: pointer;
     }
-
     .bottom-buttons img {
       width: 42px;
       height: 42px;
@@ -96,7 +93,7 @@
 <body>
 
 <video id="cam" autoplay muted playsinline></video>
-<video id="ad" playsinline loop></video>
+<video id="ad" playsinline loop preload="auto"></video>
 <button id="ppBtn" title="Play/Pause">▶️</button>
 
 <div class="thumbnail-bar">
@@ -107,7 +104,6 @@
   <div class="thumbnail" data-src="advertisement/promo5.mp4">PLAN5</div>
 </div>
 
-<!-- Bottom Buttons -->
 <div class="bottom-buttons">
   <button id="shareBtn" title="Share">
     <img src="share logo1.png" alt="Share">
@@ -130,18 +126,37 @@
   let currentVideoSrc = '';
   let isPlaying = false;
 
+  // Set up camera
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => {
-      cam.srcObject = stream;
-    })
+    .then(stream => cam.srcObject = stream)
     .catch(err => alert('Camera error: ' + err));
 
+  // Preload videos into object URLs
+  const videoCache = {};
+
+  function preloadVideo(url) {
+    fetch(url)
+      .then(response => response.blob())
+      .then(blob => {
+        const objectURL = URL.createObjectURL(blob);
+        videoCache[url] = objectURL;
+      })
+      .catch(err => console.error('Preload failed:', err));
+  }
+
+  // Preload all thumbnails' videos
+  thumbnails.forEach(thumbnail => {
+    const src = thumbnail.dataset.src;
+    preloadVideo(src);
+  });
+
+  // On thumbnail click, play the video
   thumbnails.forEach(thumbnail => {
     thumbnail.addEventListener('click', () => {
       const src = thumbnail.dataset.src;
       if (src !== currentVideoSrc) {
         currentVideoSrc = src;
-        ad.src = src;
+        ad.src = videoCache[src] || src;
         ad.load();
         ad.volume = 1;
         videoLoaded = true;
@@ -156,6 +171,7 @@
     });
   });
 
+  // Play/Pause button
   btn.addEventListener('click', () => {
     if (!videoLoaded) return;
 
@@ -163,9 +179,7 @@
       ad.play().then(() => {
         btn.innerText = '⏸️';
         isPlaying = true;
-      }).catch(e => {
-        alert('Playback failed: ' + e.message);
-      });
+      }).catch(e => alert('Playback failed: ' + e.message));
     } else {
       ad.pause();
       btn.innerText = '▶️';
@@ -173,6 +187,7 @@
     }
   });
 
+  // Share functionality
   document.getElementById('shareBtn').addEventListener('click', async () => {
     if (navigator.share) {
       try {
